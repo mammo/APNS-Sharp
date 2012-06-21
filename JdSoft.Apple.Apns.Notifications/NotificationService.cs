@@ -320,42 +320,17 @@ namespace JdSoft.Apple.Apns.Notifications
 				if (difference > 0)
 				{
 					//Need to add connections
-					for (int i = 0; i < difference; i++)
-					{
-						NotificationConnection newCon = new NotificationConnection(Host, Port, P12FileBytes, P12FilePassword);
-						newCon.SendRetries = SendRetries;
-						newCon.ReconnectDelay = ReconnectDelay;
-
-						newCon.Error += new NotificationConnection.OnError(newCon_Error);
-						newCon.NotificationFailed += new NotificationConnection.OnNotificationFailed(newCon_NotificationFailed);
-						newCon.NotificationTooLong += new NotificationConnection.OnNotificationTooLong(newCon_NotificationTooLong);
-						newCon.NotificationSuccess += new NotificationConnection.OnNotificationSuccess(newCon_NotificationSuccess);
-						newCon.Connecting += new NotificationConnection.OnConnecting(newCon_Connecting);
-						newCon.Connected += new NotificationConnection.OnConnected(newCon_Connected);
-						newCon.Disconnected += new NotificationConnection.OnDisconnected(newCon_Disconnected);
-						newCon.BadDeviceToken += new NotificationConnection.OnBadDeviceToken(newCon_BadDeviceToken);
-						notificationConnections.Add(newCon);
-					}
+					addConnections(difference);
 
 				}
 				else if (difference < 0)
 				{
 					//Need to remove connections
-					for (int i = 0; i < difference * -1; i++)
-					{
-						if (notificationConnections.Count > 0)
-						{
-							NotificationConnection toClose = notificationConnections[0];
-							notificationConnections.RemoveAt(0);
-
-							toClose.Close();
-							toClose.Dispose();
-							toClose = null;
-						}
-					}
+					removeConnections(difference);
 				}
 			}
 		}
+
 		#endregion
 
 		#region Public Methods
@@ -384,6 +359,15 @@ namespace JdSoft.Apple.Apns.Notifications
 			}
 
 			return queued;
+		}
+
+		/// <summary>
+		/// Closes all open APNS connections but first waits for all queued Notifications to be sent and then creates new connections.
+		/// </summary>
+		public void Reconnect()
+		{
+			removeConnections(Connections);
+			addConnections(Connections);
 		}
 
 		/// <summary>
@@ -501,6 +485,43 @@ namespace JdSoft.Apple.Apns.Notifications
 				return ms.ToArray();
 			}
 		}
+
+		private void removeConnections(int difference)
+		{
+			for (int i = 0; i < difference * -1; i++)
+			{
+				if (notificationConnections.Count > 0)
+				{
+					NotificationConnection toClose = notificationConnections[0];
+					notificationConnections.RemoveAt(0);
+
+					toClose.Close();
+					toClose.Dispose();
+					toClose = null;
+				}
+			}
+		}
+
+		private void addConnections(int difference)
+		{
+			for (int i = 0; i < difference; i++)
+			{
+				NotificationConnection newCon = new NotificationConnection(Host, Port, P12FileBytes, P12FilePassword);
+				newCon.SendRetries = SendRetries;
+				newCon.ReconnectDelay = ReconnectDelay;
+
+				newCon.Error += new NotificationConnection.OnError(newCon_Error);
+				newCon.NotificationFailed += new NotificationConnection.OnNotificationFailed(newCon_NotificationFailed);
+				newCon.NotificationTooLong += new NotificationConnection.OnNotificationTooLong(newCon_NotificationTooLong);
+				newCon.NotificationSuccess += new NotificationConnection.OnNotificationSuccess(newCon_NotificationSuccess);
+				newCon.Connecting += new NotificationConnection.OnConnecting(newCon_Connecting);
+				newCon.Connected += new NotificationConnection.OnConnected(newCon_Connected);
+				newCon.Disconnected += new NotificationConnection.OnDisconnected(newCon_Disconnected);
+				newCon.BadDeviceToken += new NotificationConnection.OnBadDeviceToken(newCon_BadDeviceToken);
+				notificationConnections.Add(newCon);
+			}
+		}
+
 		#endregion
 	}
 }
